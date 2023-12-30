@@ -1,0 +1,50 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// docker exec -i pg_container_name /bin/bash -c "PGPASSWORD=pg_password pg_dump --username pg_username database_name" > /desired/path/on/your/machine/dump.sql
+// docker exec -i pg_container_name /bin/bash -c "PGPASSWORD=pg_password psql --username pg_username database_name" < /path/on/your/machine/dump.sql
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearch"]
+  binaryTargets = ["native","debian-openssl-1.1.x","debian-openssl-3.0.x","linux-musl"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Permission {
+  id                 Int                  @id @default(autoincrement())
+  name               String               @db.VarChar(255)
+  permissionsOnRoles PermissionsOnRoles[]
+}
+
+model Role {
+  id                 Int                  @id @default(autoincrement())
+  name               String               @db.VarChar(255)
+  permissionsOnRoles PermissionsOnRoles[]
+  users              User[]
+}
+
+model PermissionsOnRoles {
+  role         Role       @relation(fields: [roleId], references: [id])
+  roleId       Int // relation scalar field (used in the `@relation` attribute above)
+  permission   Permission @relation(fields: [permissionId], references: [id])
+  permissionId Int // relation scalar field (used in the `@relation` attribute above)
+
+  @@id([roleId, permissionId])
+}
+
+model User {
+  id               Int            @id @default(autoincrement())
+  username         String         @unique
+  email            String         @unique
+  password         String
+  name             String?
+  role             Role?          @relation(fields: [roleId], references: [id])
+  roleId           Int?
+  token            String?
+  verificationCode String         @default("")
+  validate         Boolean        @default(false)
+}
